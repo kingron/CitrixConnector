@@ -45,8 +45,6 @@ cd "$(dirname "$(readlink -f "$0")")"
 if [ -f config.dat ]; then
 	# 加载配置
     source config.dat
-    salt=$(echo "$salt" | base64 -d)
-    key=$(echo "$key" | base64 -d)
     password=$(echo "$key" | openssl enc -d -aes-256-cbc -pbkdf2 -base64 -k "$COMPUTERNAME$salt")
 else
 	highlight 41 "开始初始化配置，若有问题可删除 config.dat 重新初始化"
@@ -60,8 +58,6 @@ else
 
     salt=$(openssl rand -hex 10)
     key=$(echo "$password" | openssl enc -aes-256-cbc -pbkdf2 -base64 -k "$COMPUTERNAME$salt")
-    salt=$(echo -n "$salt" | base64)
-    key=$(echo -n "$key" | base64)
 
 	# 保存配置
     echo "server=$server" > config.dat
@@ -118,7 +114,7 @@ echo $cookie
 echo
 
 echo 开始鉴权...
-curl $opts -i -o response.txt -X 'POST' "$server/nf/auth/doAuthentication.do" -b "$cookie" --data-raw "login=$user&passwd=$password&domain=ss_corp&loginBtn=Log+On&StateContext="
+curl $opts -i -o response.txt -X 'POST' "$server/nf/auth/doAuthentication.do" -b "$cookie" --data-raw \""login=$user&passwd=$password&domain=ss_corp&loginBtn=Log+On&StateContext="\"
 check
 NSC_AAAC=$(grep -o 'NSC_AAAC=[^;]*' response.txt | sed 's/NSC_AAAC=//')
 cookie="NSC_SAMS=Strict;NSC_AAAC=$NSC_AAAC"
