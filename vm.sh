@@ -100,7 +100,7 @@ opts="-s -H @headers.txt --insecure --cert XXXX.pfx:XXXX --cert-type P12"
 echo 获取鉴权环境...
 curl $opts -i -o response.txt -X 'POST' "$server/nf/auth/getAuthenticationRequirements.do"
 check
-url=$(grep -oP '<PostBack>\K.*?(?=<\/PostBack>)' response.txt)
+url=$(grep -o '<PostBack>[^<]*</PostBack>' response.txt | sed 's/<\/\?PostBack>//g')
 context=$(echo "$url" | sed 's/\/nf\/auth\/doCert\.do?//')
 echo url=$url
 echo
