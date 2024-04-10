@@ -115,7 +115,7 @@ echo $cookie
 echo
 
 echo 开始鉴权...
-curl $opts -i -o response.txt -X 'POST' "$server/nf/auth/doAuthentication.do" -b "$cookie" --data-raw "login=$user&passwd=$password&domain=ss_corp&loginBtn=Log+On&StateContext="
+curl $opts -i -o response.txt -X 'POST' "$server/nf/auth/doAuthentication.do" -b "$cookie" --data-urlencode "login=$user" --data-urlencode "passwd=$password" --data-urlencode "domain=ss_corp" --data-urlencode "loginBtn=Log+On" --data-urlencode "StateContext="
 check
 NSC_AAAC=$(grep -o 'NSC_AAAC=[^;]*' response.txt | sed 's/NSC_AAAC=//')
 cookie="NSC_SAMS=Strict;NSC_AAAC=$NSC_AAAC"
