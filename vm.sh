@@ -119,7 +119,7 @@ curl $opts -i -o response.txt -X 'POST' "$server/nf/auth/doAuthentication.do" -b
 check
 NSC_AAAC=$(grep -o 'NSC_AAAC=[^;]*' response.txt | sed 's/NSC_AAAC=//')
 cookie="NSC_SAMS=Strict;NSC_AAAC=$NSC_AAAC"
-StateContext=$(grep -oP '<StateContext>\K.*?(?=<\/StateContext>)' response.txt)
+StateContext=$(grep -o '<StateContext>[^<]*</StateContext>' response.txt | sed 's/<\/\?StateContext>//g')
 echo $cookie
 echo Context: $StateContext
 echo
