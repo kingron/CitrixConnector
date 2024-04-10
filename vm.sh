@@ -1,6 +1,7 @@
 #!/bin/bash
 
-echo "Citrix Gateway VM 连接工具 v1.0"
+version=1.1
+echo "Citrix Gateway VM 连接工具 v$version"
 echo "Copyright© Kingron, 2024"
 echo "本工具不驻留内存，不消耗任何额外的资源。"
 
@@ -8,10 +9,14 @@ highlight() {
     echo -e "\033[$1m$2\033[0m"
 }
 
+uriencode() {
+  curl -Gso /dev/null -w %{url_effective} --data-urlencode "data=$1" "0.0.0.0" | cut -d'=' -f2
+}
+
 function input() {
 	local buf=""
     while true; do
-        read -p $2 "$1" buf
+        read -p "$1" $2 buf
         if [ -z "$buf" ]; then
             highlight 41 "输入不能为空，请重新输入。" >&2
         else
@@ -40,25 +45,42 @@ if [[ "$1" == "-h" || "$1" == "/?" || "$1" == "--help" ]]; then
 	exit 0
 fi
 
+openssl_version=$(openssl version | awk '{print $2}')
+if [[ ! "$openssl_version" < "3.0" ]]; then
+	highlight 41 "不支持 Openssl 3.0及以上版本，当前版本 $openssl_version。"; 
+	echo "请安装 git v2.41.0 及以下版本来运行本脚本"; 
+	read -n 1 -s -r -p "按任意键继续..."
+	exit 1
+fi
+
 cd "$(dirname "$(readlink -f "$0")")"
+if [ -f config.dat ]; then
+	source config.dat
+	if [ -z "$version" ] || [ "$(awk 'BEGIN{print ("'$version'" < 1.1) ? "true" : "false" }')" == "true" ]; then
+		rm config.dat
+	fi
+fi
+
 # 初始化或读取配置
 if [ -f config.dat ]; then
 	# 加载配置
     source config.dat
+    salt=$(echo "$salt" | base64 -d)
     password=$(echo "$key" | openssl enc -d -aes-256-cbc -pbkdf2 -base64 -k "$COMPUTERNAME$salt")
 else
 	highlight 41 "开始初始化配置，若有问题可删除 config.dat 重新初始化"
     read -p "请输入Citrix网关地址(默认: https://www.gateway_server.com): " server
 	server=${server:-https://www.gateway_server.com}
 	user=$(input "用户名(corp id): ")
-	password=$(input -s "请输入密码: ")
-#	password=$(curl -Gso /dev/null -w %{url_effective} --data-urlencode "data=$password" "" | cut -d'=' -f2)
+	password=$(input "请输入密码, \字符用\\\\替代: " -s)
+	password=$(uriencode "$password")
 	echo
     read -p "目标VM IP地址(若有多个VM必输，否则可选): " ip
     read -p "多显示器支持，多个用逗号分隔(例如0,1表示在第1、2个显示器显示，不输表示单显示器模式): " monitors
 
     salt=$(openssl rand -hex 10)
     key=$(echo "$password" | openssl enc -aes-256-cbc -pbkdf2 -base64 -k "$COMPUTERNAME$salt")
+    salt=$(echo -n "$salt" | base64)
 
 	# 保存配置
     echo "server=$server" > config.dat
@@ -66,6 +88,7 @@ else
     echo "ip=$ip" >> config.dat
     echo "salt=$salt" >> config.dat
     echo "key=$key" >> config.dat
+    echo "version=$version" >> config.dat
     echo "monitors=$monitors" >> config.dat
 fi
 
@@ -115,7 +138,8 @@ echo $cookie
 echo
 
 echo 开始鉴权...
-curl $opts -i -o response.txt -X 'POST' "$server/nf/auth/doAuthentication.do" -b "$cookie" --data-urlencode "login=$user" --data-urlencode "passwd=$password" --data-urlencode "domain=ss_corp" --data-urlencode "loginBtn=Log+On" --data-urlencode "StateContext="
+# curl $opts -i -o response.txt -X 'POST' "$server/nf/auth/doAuthentication.do" -b "$cookie" --data-urlencode "login=$user" --data-urlencode "passwd=$password" --data-urlencode "domain=ss_corp" --data-urlencode "loginBtn=Log+On" --data-urlencode "StateContext="
+curl $opts -i -o response.txt -X 'POST' "$server/nf/auth/doAuthentication.do" -b "$cookie" --data-raw "login=$user&passwd=$password&domain=ss_corp&loginBtn=Log+On&StateContext="
 check
 NSC_AAAC=$(grep -o 'NSC_AAAC=[^;]*' response.txt | sed 's/NSC_AAAC=//')
 cookie="NSC_SAMS=Strict;NSC_AAAC=$NSC_AAAC"
