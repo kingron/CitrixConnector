@@ -52,7 +52,7 @@ else
 	server=${server:-https://www.gateway_server.com}
 	user=$(input "用户名(corp id): ")
 	password=$(input -s "请输入密码: ")
-	password=$(curl -Gso /dev/null -w %{url_effective} --data-urlencode "data=$password" "" | cut -d'=' -f2)
+#	password=$(curl -Gso /dev/null -w %{url_effective} --data-urlencode "data=$password" "" | cut -d'=' -f2)
 	echo
     read -p "目标VM IP地址(若有多个VM必输，否则可选): " ip
     read -p "多显示器支持，多个用逗号分隔(例如0,1表示在第1、2个显示器显示，不输表示单显示器模式): " monitors
