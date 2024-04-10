@@ -14,5 +14,5 @@
 
 - 用Git for Windows自带的Bash运行，你也可以使用 MingGW 等其他Bash环境运行
 - 可以把 vm.sh 锁定到任务栏，之后可以右击直接运行一键连接
-- 若自签名证书使用 openssl 1.x 生成，则必须使用 git v2.40.0 及以下版本，若证书使用 openssl 3.x ，则需要使用 Git for 2.41.0 及以上版本运行
+- 若自签名证书使用 openssl 1.x 生成，则必须使用 git v2.12.0 ~ v2.39 之间的版本，若证书使用 openssl 3.x ，则需要使用 Git for 2.41.0 及以上版本运行。低版本无法支持 pbkdf2 加密，高版本暂不支持 openssl 3.x 
   
