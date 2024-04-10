@@ -51,7 +51,8 @@ else
     read -p "请输入Citrix网关地址(默认: https://www.gateway_server.com): " server
 	server=${server:-https://www.gateway_server.com}
 	user=$(input "用户名(corp id): ")
-    password=$(input -s "请输入密码: ")
+	password=$(input -s "请输入密码: ")
+	password=$(curl -Gso /dev/null -w %{url_effective} --data-urlencode "data=$password" "" | cut -d'=' -f2)
 	echo
     read -p "目标VM IP地址(若有多个VM必输，否则可选): " ip
     read -p "多显示器支持，多个用逗号分隔(例如0,1表示在第1、2个显示器显示，不输表示单显示器模式): " monitors
@@ -114,7 +115,7 @@ echo $cookie
 echo
 
 echo 开始鉴权...
-curl $opts -i -o response.txt -X 'POST' "$server/nf/auth/doAuthentication.do" -b "$cookie" --data-raw \""login=$user&passwd=$password&domain=ss_corp&loginBtn=Log+On&StateContext="\"
+curl $opts -i -o response.txt -X 'POST' "$server/nf/auth/doAuthentication.do" -b "$cookie" --data-raw "login=$user&passwd=$password&domain=ss_corp&loginBtn=Log+On&StateContext="
 check
 NSC_AAAC=$(grep -o 'NSC_AAAC=[^;]*' response.txt | sed 's/NSC_AAAC=//')
 cookie="NSC_SAMS=Strict;NSC_AAAC=$NSC_AAAC"
