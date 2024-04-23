@@ -1,6 +1,6 @@
 #!/bin/bash
 
-version=1.1
+version=1.3
 echo "Citrix Gateway VM 连接工具 v$version"
 echo "Copyright© Kingron, 2024"
 echo "本工具不驻留内存，不消耗任何额外的资源。"
@@ -14,7 +14,7 @@ uriencode() {
 }
 
 function input() {
-	local buf=""
+    local buf=""
     while true; do
         read -p "$1" $2 buf
         if [ -z "$buf" ]; then
@@ -23,7 +23,7 @@ function input() {
             break
         fi
     done
-	echo $buf
+    echo $buf
 }
 
 check() {
@@ -35,54 +35,58 @@ check() {
 }
 
 if [[ "$1" == "-h" || "$1" == "/?" || "$1" == "--help" ]]; then
-    echo "用法:	$0 [-h]"
-	echo "例如："
-	echo "	$0	初始化或一键连接"
-	echo "	$0 -h	显示帮助"
-	echo "初始化只会运行一次，请勿中断初始化过程"
-	highlight 41 "若有问题可删除 config.dat, headers.txt 重新初始化"
-	echo "可自定义headers.txt，以适配特殊情况"
-	exit 0
+    echo "用法:	$0 [-h] [monitors]"
+    echo "例如："
+    echo "	$0	初始化或一键连接"
+    echo "	$0 -h	显示帮助"
+    echo "	$0 0,1	强制在第1、2显示器显示"
+    echo "初始化只会运行一次，请勿中断初始化过程"
+    highlight 41 "若有问题可删除 config.dat, headers.txt 重新初始化"
+    echo "可自定义headers.txt，以适配特殊情况"
+    exit 0
 fi
 
 openssl_version=$(openssl version | awk '{print $2}')
 if [[ ! "$openssl_version" < "3.0" ]]; then
-	highlight 41 "不支持 Openssl 3.0及以上版本，当前版本 $openssl_version。"; 
-	echo "请安装 git v2.41.0 及以下版本来运行本脚本"; 
-	read -n 1 -s -r -p "按任意键继续..."
-	exit 1
+    highlight 41 "不支持 Openssl 3.0及以上版本，当前版本 $openssl_version。"; 
+    echo "请安装 git v2.40.0 以下版本来运行本脚本"; 
+    read -n 1 -s -r -p "按任意键继续..."
+    exit 1
 fi
 
 cd "$(dirname "$(readlink -f "$0")")"
 if [ -f config.dat ]; then
-	source config.dat
-	if [ -z "$version" ] || [ "$(awk 'BEGIN{print ("'$version'" < 1.1) ? "true" : "false" }')" == "true" ]; then
-		rm config.dat
-	fi
+    source config.dat
+    if [ -z "$version" ] || [ "$(awk 'BEGIN{print ("'$version'" < 1.2) ? "true" : "false" }')" == "true" ]; then
+        rm config.dat
+    fi
 fi
 
 # 初始化或读取配置
 if [ -f config.dat ]; then
-	# 加载配置
+    # 加载配置
     source config.dat
+    if [ ! -z "$1" ]; then
+        monitors=$1
+    fi
     salt=$(echo "$salt" | base64 -d)
     password=$(echo "$key" | openssl enc -d -aes-256-cbc -pbkdf2 -base64 -k "$COMPUTERNAME$salt")
 else
-	highlight 41 "开始初始化配置，若有问题可删除 config.dat 重新初始化"
+    highlight 41 "开始初始化配置，若有问题可删除 config.dat 重新初始化"
     read -p "请输入Citrix网关地址(默认: https://www.gateway_server.com): " server
-	server=${server:-https://www.gateway_server.com}
-	user=$(input "用户名(corp id): ")
-	password=$(input "请输入密码, \字符用\\\\替代: " -s)
-	password=$(uriencode "$password")
-	echo
+    server=${server:-https://www.gateway_server.com}
+    user=$(input "用户名(corp id): ")
+    password=$(input "请输入密码, \字符用\\\\替代: " -s)
+    password=$(uriencode "$password")
+    echo
     read -p "目标VM IP地址(若有多个VM必输，否则可选): " ip
-    read -p "多显示器支持，多个用逗号分隔(例如0,1表示在第1、2个显示器显示，不输表示单显示器模式): " monitors
+    read -p "多显示器支持，逗号分隔(1=第2显示器; 0,1=第1、2个显示器显示，不输表示单显示器模式): " monitors
 
     salt=$(openssl rand -hex 10)
     key=$(echo "$password" | openssl enc -aes-256-cbc -pbkdf2 -base64 -k "$COMPUTERNAME$salt")
     salt=$(echo -n "$salt" | base64)
 
-	# 保存配置
+    # 保存配置
     echo "server=$server" > config.dat
     echo "user=$user" >> config.dat
     echo "ip=$ip" >> config.dat
@@ -94,10 +98,10 @@ fi
 
 # echo $server - $user - $password - $ip
 if [ -f desktop.rdp ]; then
-	rm desktop.rdp
+    rm desktop.rdp
 fi
 if [ ! -f headers.txt ]; then
-	cat <<EOF >headers.txt
+    cat <<EOF >headers.txt
 Accept: application/xml, text/xml, */*; q=0.01
 Accept-Encoding: gzip, deflate, br, zstd
 Accept-Language: zh-CN,zh;q=0.9
@@ -163,10 +167,10 @@ check
 echo $content
 echo
 if [ -z "$ip" ]; then
-	rdpUrl="$content"
+    rdpUrl="$content"
 else
-	echo 抽取 $ip 对应的地址...
-	rdpUrl=$(echo "$content" | awk -v ip="$ip" '{for(i=1;i<=NF;i++) if($i ~ ip) print $i}')
+    echo 抽取 $ip 对应的地址...
+    rdpUrl=$(echo "$content" | awk -v ip="$ip" '{for(i=1;i<=NF;i++) if($i ~ ip) print $i}')
 fi
 
 echo 下载RDP配置文件: $rdpUrl
@@ -176,20 +180,30 @@ check
 echo 更改为单个桌面连接...
 echo >>desktop.rdp
 if [ ! -z "$monitors" ]; then
-	echo "selectedmonitors:s:$monitors">>desktop.rdp
+    echo "selectedmonitors:s:$monitors">>desktop.rdp
 fi
+echo "autoreconnection enabled:i:0">>desktop.rdp
+echo "allow desktop composition:i:0">>desktop.rdp
 echo "compression:i:1">>desktop.rdp
+echo "desktopscalefactor:i:100">>desktop.rdp
+echo "smart sizing:i:1">>desktop.rdp
+echo "dynamic resolution:i:1">>desktop.rdp
+echo "singlemoninwindowedmode:i:1">>desktop.rdp
+echo "disable full window drag:i:1">>desktop.rdp
+echo "bitmapcachepersistenable:i:1">>desktop.rdp
+echo "disable menu anims:i:1 ">>desktop.rdp
+echo "session bpp:i:15">>desktop.rdp
 echo "username:s:$user">>desktop.rdp
 sed -i 's/redirectclipboard:i:0/redirectclipboard:i:1/g' desktop.rdp
 # sed -i 's/redirectdrives:i:0/redirectdrives:i:1/g' desktop.rdp
 if [ -z "$monitors" ]; then
-	sed -i 's/use multimon:i:1/use multimon:i:0/g' desktop.rdp
+    sed -i 's/use multimon:i:1/use multimon:i:0/g' desktop.rdp
 fi
 echo 等待远程服务器配置就绪...
 highlight 44\;97 "若失败请手动打开 desktop.rdp 或重试..."
 highlight 44\;97 "请勿勾选记住密码，因为连接每次都不一样"
-sleep 10
+sleep 5
 echo 启动远程桌面
-cmd //c start mstsc //admin desktop.rdp &
+$SYSTEMROOT\\System32\\cmd.exe //c start mstsc //admin desktop.rdp &
 sleep 1
 rm response.txt
