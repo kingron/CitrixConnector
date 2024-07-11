@@ -15,4 +15,4 @@
 - 用Git for Windows自带的Bash运行，你也可以使用 MingGW 等其他Bash环境运行
 - 可以把 vm.sh 锁定到任务栏，之后可以右击直接运行一键连接
 - 若自签名证书使用 openssl 1.x 生成，则必须使用 git v2.12.0 ~ v2.39 之间的版本，若证书使用 openssl 3.x ，则需要使用 Git for 2.41.0 及以上版本运行。低版本无法支持 pbkdf2 加密，高版本暂不支持 openssl 3.x 
-  
+- 如果连接VM后，不想远程桌面的屏幕文本缩放按本地设置，可以忽略本地的text scale，在远程server上cmd中运行 `reg add "HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations" /v IgnoreClientDesktopScaleFactor /t REG_DWORD /d 1 /f` 即可。
